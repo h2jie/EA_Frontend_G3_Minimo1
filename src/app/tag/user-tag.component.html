@@ -1,0 +1,326 @@
+<div class="container">
+  <h1 class="main-title">Sistema de Etiquetas de Usuarios</h1>
+  
+
+  <div *ngIf="message" class="alert" [ngClass]="{'alert-success': messageType === 'success', 'alert-danger': messageType === 'error', 'alert-info': messageType === 'info'}">
+    {{ message }}
+    <button type="button" class="close-btn" (click)="message = ''">×</button>
+  </div>
+  
+
+  <div class="navigation-tabs">
+    <button class="tab-btn" [class.active]="activeTab === 'manage-tags'" (click)="setActiveTab('manage-tags')">
+      Gestionar Etiquetas
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'user-tags'" (click)="setActiveTab('user-tags')">
+      Etiquetas de Usuario
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'search-users'" (click)="setActiveTab('search-users')">
+      Buscar Usuarios
+    </button>
+    <button class="tab-btn" routerLink="/users">
+      Volver a Usuarios
+    </button>
+  </div>
+  
+
+  <div *ngIf="activeTab === 'manage-tags'" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <h2>Crear Nueva Etiqueta</h2>
+      </div>
+      <div class="card-body">
+        <form (ngSubmit)="createTag()">
+          <div class="form-group">
+            <label for="tagName">Nombre*:</label>
+            <input type="text" id="tagName" [(ngModel)]="newTag.name" name="name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="tagDescription">Descripción:</label>
+            <textarea id="tagDescription" [(ngModel)]="newTag.description" name="description" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="tagCategory">Categoría:</label>
+            <input type="text" id="tagCategory" [(ngModel)]="newTag.category" name="category" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-primary">Crear Etiqueta</button>
+        </form>
+      </div>
+    </div>
+    
+
+    <div class="card mt-4">
+      <div class="card-header">
+        <h2>Buscar Etiquetas</h2>
+      </div>
+      <div class="card-body">
+        <div class="search-form">
+          <input type="text" [(ngModel)]="tagSearchQuery" placeholder="Buscar por nombre, descripción o categoría" class="form-control">
+          <button (click)="searchTags()" class="btn btn-info">Buscar</button>
+        </div>
+        
+        <div *ngIf="tagSearchResults.length > 0">
+          <h3>Resultados de Búsqueda ({{ totalTagSearchResults }})</h3>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Categoría</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let tag of tagSearchResults | paginate: { 
+                    id: 'tagSearchPagination',
+                    itemsPerPage: tagPageSize, 
+                    currentPage: tagSearchPage, 
+                    totalItems: totalTagSearchResults 
+                  }">
+                  <td>{{ tag.name }}</td>
+                  <td>{{ tag.description }}</td>
+                  <td>{{ tag.category }}</td>
+                  <td>{{ tag.isActive ? 'Activo' : 'Inactivo' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="pagination-container">
+            <pagination-controls id="tagSearchPagination" 
+              (pageChange)="changeTagSearchPage($event)"
+              previousLabel="Anterior"
+              nextLabel="Siguiente">
+            </pagination-controls>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card mt-4">
+      <div class="card-header">
+        <h2>Etiquetas Existentes</h2>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Categoría</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let tag of tags | paginate: { 
+                  id: 'tagPagination',
+                  itemsPerPage: tagPageSize, 
+                  currentPage: tagPage, 
+                  totalItems: totalTags 
+                }">
+                <tr *ngIf="editingTag && editingTag._id === tag._id">
+                  <td>
+                    <input type="text" [(ngModel)]="editingTag.name" class="form-control form-control-sm">
+                  </td>
+                  <td>
+                    <input type="text" [(ngModel)]="editingTag.description" class="form-control form-control-sm">
+                  </td>
+                  <td>
+                    <input type="text" [(ngModel)]="editingTag.category" class="form-control form-control-sm">
+                  </td>
+                  <td>
+                    <select [(ngModel)]="editingTag.isActive" class="form-control form-control-sm">
+                      <option [ngValue]="true">Activo</option>
+                      <option [ngValue]="false">Inactivo</option>
+                    </select>
+                  </td>
+                  <td>
+                    <button (click)="updateTag()" class="btn btn-success btn-sm mr-1">Guardar</button>
+                    <button (click)="cancelEdit()" class="btn btn-secondary btn-sm">Cancelar</button>
+                  </td>
+                </tr>
+                <tr *ngIf="!editingTag || editingTag._id !== tag._id">
+                  <td>{{ tag.name }}</td>
+                  <td>{{ tag.description }}</td>
+                  <td>{{ tag.category }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="tag.isActive ? 'badge-success' : 'badge-warning'">
+                      {{ tag.isActive ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                  <td>
+                    <button (click)="editTag(tag)" class="btn btn-info btn-sm mr-1">Editar</button>
+                    <button (click)="deleteTag(tag._id!)" class="btn btn-danger btn-sm">Eliminar</button>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="pagination-container">
+          <pagination-controls id="tagPagination" 
+            (pageChange)="changeTagPage($event)"
+            previousLabel="Anterior"
+            nextLabel="Siguiente">
+          </pagination-controls>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- User Tags Associated Tabs -->
+  <div *ngIf="activeTab === 'user-tags'" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <h2>Gestionar Etiquetas de Usuario</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label for="userSelect">Seleccionar Usuario:</label>
+          <select id="userSelect" [(ngModel)]="selectedUserId" (change)="selectUser(selectedUserId)" class="form-control">
+            <option value="">Seleccione un usuario</option>
+            <option *ngFor="let user of users | paginate: { 
+                id: 'userPagination',
+                itemsPerPage: userPageSize, 
+                currentPage: userPage, 
+                totalItems: totalUsers 
+              }" [value]="user._id">
+              {{ user.name }} ({{ user.email }})
+            </option>
+          </select>
+          
+          <div class="pagination-container mt-2">
+            <pagination-controls id="userPagination" 
+              (pageChange)="changeUserPage($event)"
+              previousLabel="Anterior"
+              nextLabel="Siguiente">
+            </pagination-controls>
+          </div>
+        </div>
+        
+        <div *ngIf="selectedUser" class="user-details">
+          <h3>Etiquetas de {{ selectedUser.name }}</h3>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h4>Añadir Etiqueta Existente</h4>
+                </div>
+                <div class="card-body">
+                  <div class="tag-list">
+                    <div *ngFor="let tag of tags" class="tag-item">
+                      <span class="tag-name">{{ tag.name }}</span>
+                      <button 
+                        *ngIf="!userHasTag(tag._id!)" 
+                        (click)="addTagToUser(tag._id!)" 
+                        class="btn btn-sm btn-primary">
+                        Añadir
+                      </button>
+                      <span *ngIf="userHasTag(tag._id!)" class="badge badge-success">Añadida</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h4>Crear Nueva Etiqueta</h4>
+                </div>
+                <div class="card-body">
+                  <div class="form-group">
+                    <label for="newTagName">Nombre de la Etiqueta:</label>
+                    <div class="input-group">
+                      <input type="text" id="newTagName" [(ngModel)]="newTag.name" class="form-control">
+                      <div class="input-group-append">
+                        <button (click)="addNewTagToUser(newTag.name)" class="btn btn-primary">Añadir</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card mt-4">
+            <div class="card-header">
+              <h4>Etiquetas Actuales</h4>
+            </div>
+            <div class="card-body">
+              <div *ngIf="userTags.length > 0" class="user-tags">
+                <div *ngFor="let tag of userTags" class="user-tag">
+                  <span class="tag-name">{{ tag.name }}</span>
+                  <button (click)="removeTagFromUser(tag._id)" class="btn btn-sm btn-danger">Eliminar</button>
+                </div>
+              </div>
+              <div *ngIf="userTags.length === 0" class="no-tags">
+                Este usuario no tiene etiquetas asignadas.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div *ngIf="activeTab === 'search-users'" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <h2>Buscar Usuarios por Etiqueta</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label for="tagSelect">Seleccionar Etiqueta:</label>
+          <select id="tagSelect" [(ngModel)]="selectedTagForSearch" (change)="searchUsersByTag()" class="form-control">
+            <option value="">Seleccione una etiqueta</option>
+            <option *ngFor="let tag of tags" [value]="tag._id">{{ tag.name }}</option>
+          </select>
+        </div>
+        
+        <div *ngIf="userSearchResults.length > 0" class="search-results">
+          <h3>Usuarios con esta etiqueta ({{ totalUserSearchResults }})</h3>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Fecha Nacimiento</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let user of userSearchResults | paginate: { 
+                    id: 'userSearchPagination',
+                    itemsPerPage: userSearchPageSize, 
+                    currentPage: userSearchPage, 
+                    totalItems: totalUserSearchResults 
+                  }">
+                  <td>{{ user.name }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>{{ user.birthDate | date }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="pagination-container">
+            <pagination-controls id="userSearchPagination" 
+              (pageChange)="changeUserSearchPage($event)"
+              previousLabel="Anterior"
+              nextLabel="Siguiente">
+            </pagination-controls>
+          </div>
+        </div>
+        
+        <div *ngIf="selectedTagForSearch && userSearchResults.length === 0" class="no-results">
+          No se encontraron usuarios con esta etiqueta.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

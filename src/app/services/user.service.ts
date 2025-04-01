@@ -38,4 +38,8 @@ export class UserService {
     return this.http.put<User>(`${this.hideUrl}/${_id}/oculto`, { isHidden });
   }
 
+  getUserById(userId: string): Observable<User> {
+    return this.http.get<User>(`${this.listUrl}/${userId}`);
+  }
+
 }
